@@ -22,7 +22,7 @@
 5. 切换到 **MQL5 源码** 标签，点击 **复制源码** 或 **下载 .mq5**。
 6. 使用 MetaEditor 打开 `.mq5`，按 `F7` 编译。
 
-页面使用 Tailwind CDN 渲染样式。首次打开建议保持网络可用；如果页面样式异常，请检查浏览器是否能访问 `https://cdn.tailwindcss.com`。
+页面使用本地化的 Tailwind Play CDN 脚本(`vendor/tailwindcss.js`)渲染样式,完全离线可用,无需联网。
 
 ## 网页教程
 
@@ -148,7 +148,10 @@
 ```text
 .
 ├── mql5_generator.html   # 生成器页面、JSON 编辑器、MQL5 模板生成逻辑
-├── README.md             # 使用说明
+├── vendor/
+│   └── tailwindcss.js    # 本地化的 Tailwind Play CDN 脚本
+├── README.md             # 英文文档
+├── README.cn.md          # 中文文档
 └── LICENSE               # 开源许可
 ```
 

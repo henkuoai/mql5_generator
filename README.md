@@ -22,7 +22,7 @@ A single-page MQL5 strategy GUI generator for MT5 forex trading. Visually edit y
 5. Switch to the **MQL5 Source** tab, then click **Copy Source** or **Download .mq5**.
 6. Open the `.mq5` file in MetaEditor and press `F7` to compile.
 
-The page uses the Tailwind CDN for styling. Keep the network available on first load. If the page looks unstyled, make sure your browser can reach `https://cdn.tailwindcss.com`.
+The page uses a local copy of the Tailwind Play CDN script (`vendor/tailwindcss.js`) for styling, so it works fully offline — no network required.
 
 ## Web Tutorial
 
@@ -148,8 +148,10 @@ Each factor in `strategy.factors` casts a vote of `+1` (BUY) or `-1` (SELL). A B
 ```text
 .
 ├── mql5_generator.html   # Generator page, JSON editor, MQL5 template generation logic
-├── README.md             # Chinese documentation
-├── README.en.md          # English documentation
+├── vendor/
+│   └── tailwindcss.js    # Local copy of the Tailwind Play CDN script
+├── README.md             # English documentation
+├── README.cn.md          # Chinese documentation
 └── LICENSE               # Open source license
 ```
 
