@@ -1,75 +1,75 @@
 # mql5_generator
 
-一个用于 MT5 外汇交易的单页 MQL5 策略 GUI 生成器。你可以在网页里可视化编辑策略 JSON，配置指标、止盈止损、仓位、频率限制和风控过滤，然后导出可直接交给 MetaEditor 编译的 `.mq5` EA 源码。
+A single-page MQL5 strategy GUI generator for MT5 forex trading. Visually edit your strategy JSON in the browser, configure indicators, take-profit / stop-loss, position sizing, frequency limits and risk filters, then export a ready-to-compile `.mq5` EA source file for MetaEditor.
 
-## 功能特性
+## Features
 
-- **JSON + 可视化双向编辑**：左侧编辑 JSON，右侧实时渲染策略表单；修改右侧字段时也会同步回 JSON。
-- **多种开单策略**：支持布林带、RSI、MACD、双均线、Stochastic、Williams %R、CCI、MFI。
-- **多因子信号**：可组合多个指标因子，设置 BUY/SELL 投票方向和最少票数阈值。
-- **仓位模式**：固定手数，或按账户余额百分比计算风险仓位。
-- **风控与过滤**：点差上限、交易时段、最大持仓数、滑动窗口频率限制。
-- **ATR 辅助过滤**：可启用 ATR 止损/止盈过滤、趋势 EMA 和 ADX 趋势强度过滤。
-- **一键导出**：生成单文件、自包含的 MQL5 源码，可复制或下载为 `.mq5`。
-- **暗色主题**：支持亮色/暗色切换，主题偏好保存在浏览器本地。
+- **Bi-directional JSON + visual editing** — Edit JSON on the left, see the strategy form rendered live on the right. Changes made in the form are synced back to JSON.
+- **Multiple entry strategies** — Bollinger Bands, RSI, MACD, dual moving averages, Stochastic, Williams %R, CCI and MFI.
+- **Multi-factor signals** — Combine multiple indicator factors, configure BUY/SELL vote direction and a minimum-vote threshold.
+- **Position sizing** — Fixed lot size, or risk-based sizing as a percentage of account balance.
+- **Risk control & filters** — Max spread, trading hours, max open positions, sliding-window frequency limit.
+- **ATR-based auxiliary filters** — Optional ATR stop-loss / take-profit filter, trend EMA and ADX trend-strength filter.
+- **One-click export** — Generates a single-file, self-contained MQL5 source that you can copy or download as `.mq5`.
+- **Dark theme** — Light / dark mode toggle with the preference saved in the browser's local storage.
 
-## 快速开始
+## Quick Start
 
-1. 打开仓库中的 `mql5_generator.html`。
-2. 在顶部选择一个示例策略，或点击 **打开 .json** 加载自己的配置。
-3. 在 **策略编辑** 标签中检查或调整参数。
-4. 点击 **生成 MQL5 源码**。
-5. 切换到 **MQL5 源码** 标签，点击 **复制源码** 或 **下载 .mq5**。
-6. 使用 MetaEditor 打开 `.mq5`，按 `F7` 编译。
+1. Open `mql5_generator.html` from the repository.
+2. Pick an example strategy from the top, or click **Open .json** to load your own configuration.
+3. Review or adjust the parameters in the **Strategy Editor** tab.
+4. Click **Generate MQL5 Source**.
+5. Switch to the **MQL5 Source** tab, then click **Copy Source** or **Download .mq5**.
+6. Open the `.mq5` file in MetaEditor and press `F7` to compile.
 
-页面使用 Tailwind CDN 渲染样式。首次打开建议保持网络可用；如果页面样式异常，请检查浏览器是否能访问 `https://cdn.tailwindcss.com`。
+The page uses the Tailwind CDN for styling. Keep the network available on first load. If the page looks unstyled, make sure your browser can reach `https://cdn.tailwindcss.com`.
 
-## 网页教程
+## Web Tutorial
 
-### 1. 配置策略
+### 1. Configure the Strategy
 
-- **EA 名称**：作为导出的 `.mq5` 文件名；只允许字母、数字和下划线。
-- **加载示例**：快速体验布林带、RSI、MACD、均线交叉等模板。
-- **打开 .json**：加载现有策略配置。
-- **清空**：从空配置开始。
+- **EA Name** — Used as the exported `.mq5` file name; letters, digits and underscores only.
+- **Load Example** — Quickly try templates such as Bollinger Bands, RSI, MACD or moving-average crossover.
+- **Open .json** — Load an existing strategy configuration.
+- **Clear** — Start from an empty configuration.
 
-### 2. 编辑核心字段
+### 2. Edit Core Fields
 
-- **开单策略**：选择指标、周期、指标参数、止盈点数、止损点数、Magic Number 和订单注释。
-- **仓位控制**：选择 `fixed_lots` 固定手数，或 `risk_pct` 按账户余额风险百分比。
-- **频率限制**：限制“每 N 小时最多 M 笔交易”。
-- **风控过滤**：设置最大点差、交易时段和最大同时持仓数量。
-- **辅助过滤器**：按需启用 ATR 止损/止盈、趋势 EMA、ADX 强度等条件。
-- **多因子信号**：组合多个指标条件；每个因子投票 BUY 或 SELL，只有达到最少票数才开仓。
+- **Entry Strategy** — Select the indicator, timeframe, indicator parameters, take-profit points, stop-loss points, Magic Number and order comment.
+- **Position Control** — Choose `fixed_lots` for a fixed lot size, or `risk_pct` to risk a percentage of account balance.
+- **Frequency Limit** — Cap trades to "at most M trades per N hours".
+- **Risk Filters** — Configure max spread, trading hours and max simultaneous open positions.
+- **Auxiliary Filters** — Optionally enable ATR stop-loss / take-profit, trend EMA, ADX strength and similar conditions.
+- **Multi-factor Signals** — Combine multiple indicator conditions; each factor votes BUY or SELL, and a trade is only opened once the minimum vote count is reached.
 
-左侧 JSON 修改后会自动解析；解析成功时页面会显示同步时间，失败时会显示错误信息。
+JSON edits on the left are parsed automatically. On a successful parse the page shows the sync time; on failure it shows the error message.
 
-### 3. 生成与导出
+### 3. Generate & Export
 
-1. 点击 **生成 MQL5 源码**。
-2. 页面会自动切换到 **MQL5 源码** 标签。
-3. 检查生成结果，点击 **复制源码** 或 **下载 .mq5**。
+1. Click **Generate MQL5 Source**.
+2. The page automatically switches to the **MQL5 Source** tab.
+3. Review the generated output, then click **Copy Source** or **Download .mq5**.
 
-生成器会把当前 JSON 参数硬编码进 MQL5 源码，因此 EA 运行时不依赖 JSON 文件。
+The generator hard-codes the current JSON parameters into the MQL5 source, so the EA does not depend on the JSON file at runtime.
 
-### 4. 编译与运行
+### 4. Compile & Run
 
-1. 打开 MetaTrader 5，进入 **文件 → 打开数据文件夹**。
-2. 将 `.mq5` 复制到 `MQL5\Experts\` 目录。
-3. 用 MetaEditor 打开该文件，按 `F7` 编译。
-4. 回到 MT5 的 Navigator/导航器，刷新后找到生成的 EA。
-5. 先在 **Strategy Tester/策略测试器** 中回测。
-6. 确认无误后挂到图表，并确保 MT5 的 **Algo Trading/自动交易** 已启用。
+1. Open MetaTrader 5 and go to **File → Open Data Folder**.
+2. Copy the `.mq5` file into the `MQL5\Experts\` directory.
+3. Open the file in MetaEditor and press `F7` to compile.
+4. Return to the MT5 Navigator, refresh it, then locate the generated EA.
+5. Backtest it first in the **Strategy Tester**.
+6. Once you are confident, attach it to a chart and make sure **Algo Trading** is enabled in MT5.
 
-## 配置结构概览
+## Configuration Overview
 
-常用顶层字段如下：
+Common top-level fields:
 
 ```json
 {
   meta: {
     version: 2.0,
-    description: 策略说明
+    description: Strategy description
   },
   strategy: {
     indicator: RSI,
@@ -104,15 +104,15 @@
   filter: {
     max_spread_points: 30,
     trading_hours: {
-      start: 08:00,
-      end: 22:00
+      start: "08:00",
+      end: "22:00"
     },
     max_open_positions: 3
   }
 }
 ```
 
-### 多因子配置
+### Multi-factor Configuration
 
 ```json
 {
@@ -122,15 +122,15 @@
     min_votes_sell: 2,
     factors: [
       {
-        name: RSI超卖,
+        name: "RSI Oversold",
         indicator: RSI,
         params: { period: 14, applied_price: PRICE_CLOSE },
-        op: <,
+        op: "<",
         value: 30,
         direction: BUY
       },
       {
-        name: 价格在EMA200上方,
+        name: "Price Above EMA200",
         indicator: EMA,
         params: { period: 200, method: MODE_EMA },
         op: price_above_ema,
@@ -141,19 +141,20 @@
 }
 ```
 
-`strategy.factors` 中的每个因子都会投票 `+1`（BUY）或 `-1`（SELL）；BUY 票数达到 `min_votes_buy`，或 SELL 票数达到 `min_votes_sell` 时，才允许开对应方向的仓位。
+Each factor in `strategy.factors` casts a vote of `+1` (BUY) or `-1` (SELL). A BUY position is opened only when the BUY vote count reaches `min_votes_buy`, and a SELL position is opened only when the SELL vote count reaches `min_votes_sell`.
 
-## 项目结构
+## Project Structure
 
 ```text
 .
-├── mql5_generator.html   # 生成器页面、JSON 编辑器、MQL5 模板生成逻辑
-├── README.md             # 使用说明
-└── LICENSE               # 开源许可
+├── mql5_generator.html   # Generator page, JSON editor, MQL5 template generation logic
+├── README.md             # Chinese documentation
+├── README.en.md          # English documentation
+└── LICENSE               # Open source license
 ```
 
-## 注意事项
+## Notes
 
-- 生成器的默认参数仅用于演示，不构成任何投资建议。
-- 外汇交易存在风险；实盘前请先完成历史回测、模拟账户测试和参数压力测试。
-- 导出的 EA 将参数硬编码进源码，修改策略后需要重新生成、编译并替换图表上的 EA。
+- The generator's default parameters are for demonstration only and do not constitute investment advice.
+- Forex trading carries risk. Always run historical backtests, demo-account tests and parameter stress tests before going live.
+- The exported EA hard-codes its parameters into the source. After modifying a strategy, you must regenerate, recompile and replace the EA on the chart.
