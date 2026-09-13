@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>Quantum Titan MT5 交易逻辑逆向分析报告</title>
+<style>
+ body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;margin:0;background:#f4f6f8;color:#2c3e50;line-height:1.65}
+ .wrap{max-width:960px;margin:0 auto;padding:32px 28px}
+ h1{font-size:26px;border-bottom:3px solid #6c5ce7;padding-bottom:10px}
+ h2{font-size:20px;margin-top:40px;color:#6c5ce7}
+ h3{font-size:16px;margin-top:24px}
+ .card{background:#fff;border-radius:10px;padding:20px 24px;margin:18px 0;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+ table{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0}
+ th,td{border:1px solid #e3e6ea;padding:6px 10px;text-align:center}
+ th{background:#f0f2f5}
+ .pos{color:#c0392b;font-weight:600} .neg{color:#1e8449;font-weight:600}
+ .kpi{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
+ .kpi div{flex:1;min-width:140px;background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+ .kpi b{display:block;font-size:20px;color:#6c5ce7}
+ .kpi span{font-size:12px;color:#5d6d7e}
+ .tag{display:inline-block;background:#edeafc;color:#6c5ce7;border-radius:12px;padding:2px 10px;font-size:12px;margin:2px}
+ .warn{background:#fdecea;border-left:4px solid #e74c3c;padding:12px 16px;border-radius:6px;margin:14px 0;font-size:14px}
+ .ok{background:#eafaf1;border-left:4px solid #1e8449;padding:12px 16px;border-radius:6px;margin:14px 0;font-size:14px}
+ .muted{color:#7f8c8d;font-size:12px}
+ code{background:#f0f2f5;padding:1px 6px;border-radius:4px;font-size:12.5px}
+</style></head><body><div class="wrap">
+
+<h1>Quantum Titan MT5（信号 2362973）交易逻辑逆向分析</h1>
+<p class="muted">数据来源：MQL5 信号页 108 笔实盘平仓单（2026-03-10 ~ 2026-09-11，XAUUSD+，EUR 账户，Vantage 实盘）×
+本机 MT5 终端 XAUUSD M5/H1 历史（时区对齐验证 100% 匹配）× 产品页与信号统计页公开信息。分析脚本见工作区
+<code>titan_csv_stats.py / titan_stage2.py / titan_stage3.py</code>。</p>
+
+<div class="kpi">
+ <div><b>108</b><span>交易笔数（多57 / 空51）</span></div>
+ <div><b>88%</b><span>胜率（95胜13负）</span></div>
+ <div><b>2.37</b><span>盈利因子</span></div>
+ <div><b>2 秒</b><span>持仓时长中位数</span></div>
+ <div><b>+41,350</b><span>净利 EUR（50k→91,350）</span></div>
+ <div><b>37 笔</b><span>最大连胜</span></div>
+</div>
+
+<h2>一、一句话结论</h2>
+<div class="card">
+<p><b>Quantum Titan 是一台「黄金动量突破·秒级剥头皮」机器：</b>它全年守着 XAUUSD，等价格在 5 分钟内猛冲
+<b>4 美元以上</b>、并突破近 30 分钟~4 小时极值、且与 H1 趋势同向时，<b>tick 级追入</b>；
+用<b>固定 10 美元止损</b>（2026-09 起改为 5 美元）定义风险，靠<b>动态小止盈（约 1.5~3 美元）+ 紧跟踪 + 停滞即走</b>
+在几秒到几分钟内收割脉冲的最后一程。胜率 88% 弥补 1:4.7 的盈亏比；仓位 = 风险金额 ÷ 止损距离，
+风险档位（2% / 3% / 5% / 10%）随回撤状态自动升降。无网格、无马丁、无加仓摊平，同一时间基本只持一仓。</p>
+</div>
+
+<h2>二、证据链</h2>
+
+<h3>2.1 入场：动量突破，而非回调抄底</h3>
+<div class="card">
+<svg viewBox="0 0 860 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#ffffff;font-family:system-ui,sans-serif"><text x="50" y="18" font-size="14" font-weight="600" fill="#2c3e50">入场前5分钟价格推进（顺交易方向，$）—— 100% 为正</text><line x1="50" y1="302" x2="900" y2="302" stroke="#bdc3c7"/><line x1="50" y1="32" x2="50" y2="302" stroke="#bdc3c7"/><text x="415.0" y="276" font-size="11" fill="#5d6d7e">5分钟推进（$）</text><text x="6" y="46" font-size="11" fill="#5d6d7e">笔数</text><rect x="60.0" y="280.9" width="52.7" height="21.1" fill="#2980b9" opacity="0.85"/><text x="81.3" y="274.9" font-size="10" fill="#2c3e50">2</text><rect x="114.7" y="228.3" width="52.7" height="73.7" fill="#2980b9" opacity="0.85"/><text x="136.0" y="222.3" font-size="10" fill="#2c3e50">7</text><rect x="169.3" y="123.1" width="52.7" height="178.9" fill="#2980b9" opacity="0.85"/><text x="190.7" y="117.1" font-size="10" fill="#2c3e50">17</text><rect x="224.0" y="102.0" width="52.7" height="200.0" fill="#2980b9" opacity="0.85"/><text x="245.3" y="96.0" font-size="10" fill="#2c3e50">19</text><rect x="278.7" y="175.7" width="52.7" height="126.3" fill="#2980b9" opacity="0.85"/><text x="300.0" y="169.7" font-size="10" fill="#2c3e50">12</text><rect x="333.3" y="217.8" width="52.7" height="84.2" fill="#2980b9" opacity="0.85"/><text x="354.7" y="211.8" font-size="10" fill="#2c3e50">8</text><rect x="388.0" y="186.2" width="52.7" height="115.8" fill="#2980b9" opacity="0.85"/><text x="409.3" y="180.2" font-size="10" fill="#2c3e50">11</text><rect x="442.7" y="228.3" width="52.7" height="73.7" fill="#2980b9" opacity="0.85"/><text x="464.0" y="222.3" font-size="10" fill="#2c3e50">7</text><rect x="497.3" y="249.4" width="52.7" height="52.6" fill="#2980b9" opacity="0.85"/><text x="518.7" y="243.4" font-size="10" fill="#2c3e50">5</text><rect x="552.0" y="249.4" width="52.7" height="52.6" fill="#2980b9" opacity="0.85"/><text x="573.3" y="243.4" font-size="10" fill="#2c3e50">5</text><rect x="606.7" y="270.4" width="52.7" height="31.6" fill="#2980b9" opacity="0.85"/><text x="628.0" y="264.4" font-size="10" fill="#2c3e50">3</text><rect x="661.3" y="280.9" width="52.7" height="21.1" fill="#2980b9" opacity="0.85"/><text x="682.7" y="274.9" font-size="10" fill="#2c3e50">2</text><rect x="716.0" y="259.9" width="52.7" height="42.1" fill="#2980b9" opacity="0.85"/><text x="737.3" y="253.9" font-size="10" fill="#2c3e50">4</text><rect x="770.7" y="280.9" width="52.7" height="21.1" fill="#2980b9" opacity="0.85"/><text x="792.0" y="274.9" font-size="10" fill="#2c3e50">2</text><rect x="825.3" y="302.0" width="52.7" height="1.0" fill="#2980b9" opacity="0.85"/><text x="60.0" y="316" font-size="10" fill="#5d6d7e">0</text><text x="169.3" y="316" font-size="10" fill="#5d6d7e">4</text><text x="278.7" y="316" font-size="10" fill="#5d6d7e">8</text><text x="388.0" y="316" font-size="10" fill="#5d6d7e">12</text><text x="497.3" y="316" font-size="10" fill="#5d6d7e">16</text><text x="606.7" y="316" font-size="10" fill="#5d6d7e">20</text><text x="716.0" y="316" font-size="10" fill="#5d6d7e">24</text><text x="825.3" y="316" font-size="10" fill="#5d6d7e">28</text></svg>
+<ul>
+<li>入场前 5 分钟价格推进（顺方向）：<b>100% 为正</b>，中位数 <b>+9.5 美元</b>，76% 超过 6 美元，最大 48 美元。</li>
+<li>入场价相对近 30 分钟高/低点：<b>96% 已越过极值</b>（中位数超出 3.8 美元）；84-86% 甚至越过近 4 小时极值。</li>
+<li>M5 环境：100% 价格在 EMA20/EMA50 正确一侧、CCI 同号、+DI&gt;-DI；入场时 M5 RSI 中位 73（多）/ 29（空）——追强势，不做反转。</li>
+<li>H1 趋势过滤：96% 的多单在 H1 EMA20/EMA50 上方（空单镜像）——与小时级趋势同向。</li>
+<li>入场发生在 M5 K线<b>进行中</b>（均值 133 秒处，仅 2.8% 在开盘瞬间）→ <b>tick 级触发，非K线收盘触发</b>。</li>
+</ul>
+</div>
+
+<h3>2.2 出场：固定止损 + 动态秒级止盈</h3>
+<div class="card">
+<svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#ffffff;font-family:system-ui,sans-serif"><text x="50" y="18" font-size="14" font-weight="600" fill="#2c3e50">每笔交易的平仓价格位移（顺交易方向，美元）</text><line x1="50" y1="322" x2="900" y2="322" stroke="#bdc3c7"/><line x1="50" y1="32" x2="50" y2="322" stroke="#bdc3c7"/><text x="415.0" y="296" font-size="11" fill="#5d6d7e">位移（$）</text><text x="6" y="46" font-size="11" fill="#5d6d7e">笔数</text><rect x="60.0" y="273.1" width="30.8" height="48.9" fill="#1e8449" opacity="0.85"/><text x="70.4" y="267.1" font-size="10" fill="#2c3e50">8</text><rect x="92.8" y="322.0" width="30.8" height="0.0" fill="#1e8449" opacity="0.85"/><rect x="125.6" y="322.0" width="30.8" height="0.0" fill="#1e8449" opacity="0.85"/><rect x="158.4" y="322.0" width="30.8" height="0.0" fill="#1e8449" opacity="0.85"/><rect x="191.2" y="322.0" width="30.8" height="0.0" fill="#1e8449" opacity="0.85"/><rect x="224.0" y="297.6" width="30.8" height="24.4" fill="#1e8449" opacity="0.85"/><text x="234.4" y="291.6" font-size="10" fill="#2c3e50">4</text><rect x="256.8" y="315.9" width="30.8" height="6.1" fill="#1e8449" opacity="0.85"/><text x="267.2" y="309.9" font-size="10" fill="#2c3e50">1</text><rect x="289.6" y="322.0" width="30.8" height="0.0" fill="#1e8449" opacity="0.85"/><rect x="322.4" y="322.0" width="30.8" height="0.0" fill="#1e8449" opacity="0.85"/><rect x="355.2" y="322.0" width="30.8" height="0.0" fill="#1e8449" opacity="0.85"/><rect x="388.0" y="322.0" width="30.8" height="0.0" fill="#1e8449" opacity="0.85"/><rect x="420.8" y="102.0" width="30.8" height="220.0" fill="#c0392b" opacity="0.85"/><text x="431.2" y="96.0" font-size="10" fill="#2c3e50">36</text><rect x="453.6" y="175.3" width="30.8" height="146.7" fill="#c0392b" opacity="0.85"/><text x="464.0" y="169.3" font-size="10" fill="#2c3e50">24</text><rect x="486.4" y="187.6" width="30.8" height="134.4" fill="#c0392b" opacity="0.85"/><text x="496.8" y="181.6" font-size="10" fill="#2c3e50">22</text><rect x="519.2" y="291.4" width="30.8" height="30.6" fill="#c0392b" opacity="0.85"/><text x="529.6" y="285.4" font-size="10" fill="#2c3e50">5</text><rect x="552.0" y="297.6" width="30.8" height="24.4" fill="#c0392b" opacity="0.85"/><text x="562.4" y="291.6" font-size="10" fill="#2c3e50">4</text><rect x="584.8" y="309.8" width="30.8" height="12.2" fill="#c0392b" opacity="0.85"/><text x="595.2" y="303.8" font-size="10" fill="#2c3e50">2</text><rect x="617.6" y="322.0" width="30.8" height="0.0" fill="#c0392b" opacity="0.85"/><rect x="650.4" y="315.9" width="30.8" height="6.1" fill="#c0392b" opacity="0.85"/><text x="660.8" y="309.9" font-size="10" fill="#2c3e50">1</text><rect x="683.2" y="322.0" width="30.8" height="0.0" fill="#c0392b" opacity="0.85"/><rect x="716.0" y="322.0" width="30.8" height="0.0" fill="#c0392b" opacity="0.85"/><rect x="748.8" y="322.0" width="30.8" height="0.0" fill="#c0392b" opacity="0.85"/><rect x="781.6" y="322.0" width="30.8" height="0.0" fill="#c0392b" opacity="0.85"/><rect x="814.4" y="322.0" width="30.8" height="0.0" fill="#c0392b" opacity="0.85"/><rect x="847.2" y="315.9" width="30.8" height="6.1" fill="#c0392b" opacity="0.85"/><text x="857.6" y="309.9" font-size="10" fill="#2c3e50">1</text><text x="60.0" y="336" font-size="10" fill="#5d6d7e">-10</text><text x="224.0" y="336" font-size="10" fill="#5d6d7e">-5</text><text x="388.0" y="336" font-size="10" fill="#5d6d7e">0</text><text x="552.0" y="336" font-size="10" fill="#5d6d7e">5</text><text x="716.0" y="336" font-size="10" fill="#5d6d7e">10</text><line x1="404.4" y1="32" x2="404.4" y2="322" stroke="#7f8c8d" stroke-dasharray="4,3"/><text x="409.4" y="44" font-size="11" fill="#7f8c8d">0</text></svg>
+<svg viewBox="0 0 860 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#ffffff;font-family:system-ui,sans-serif"><text x="60" y="18" font-size="14" font-weight="600" fill="#2c3e50">持仓时长 vs 胜率/结果 —— 秒级剥头皮的铁证</text><line x1="60" y1="302" x2="910" y2="302" stroke="#bdc3c7"/><line x1="60" y1="32" x2="60" y2="302" stroke="#bdc3c7"/><text x="420.0" y="276" font-size="11" fill="#5d6d7e">持仓时长</text><text x="6" y="46" font-size="11" fill="#5d6d7e">胜率%</text><rect x="80.0" y="112.0" width="136.0" height="190.0" fill="#6c5ce7" opacity="0.9"/><text x="86.0" y="106.0" font-size="12" font-weight="600" fill="#2c3e50">100%</text><text x="82.0" y="316" font-size="11" fill="#5d6d7e">≤5秒</text><text x="86.0" y="334" font-size="10" fill="#5d6d7e">n=56</text><text x="82.0" y="348" font-size="10" fill="#5d6d7e">中位位移+2.0$</text><rect x="240.0" y="163.8" width="136.0" height="138.2" fill="#6c5ce7" opacity="0.9"/><text x="246.0" y="157.8" font-size="12" font-weight="600" fill="#2c3e50">73%</text><text x="242.0" y="316" font-size="11" fill="#5d6d7e">5-30秒</text><text x="246.0" y="334" font-size="10" fill="#5d6d7e">n=11</text><text x="242.0" y="348" font-size="10" fill="#5d6d7e">中位位移+1.5$</text><rect x="400.0" y="112.0" width="136.0" height="190.0" fill="#6c5ce7" opacity="0.9"/><text x="406.0" y="106.0" font-size="12" font-weight="600" fill="#2c3e50">100%</text><text x="402.0" y="316" font-size="11" fill="#5d6d7e">30-60秒</text><text x="406.0" y="334" font-size="10" fill="#5d6d7e">n=3</text><text x="402.0" y="348" font-size="10" fill="#5d6d7e">中位位移+1.4$</text><rect x="560.0" y="181.1" width="136.0" height="120.9" fill="#6c5ce7" opacity="0.9"/><text x="566.0" y="175.1" font-size="12" font-weight="600" fill="#2c3e50">64%</text><text x="562.0" y="316" font-size="11" fill="#5d6d7e">1-5分钟</text><text x="566.0" y="334" font-size="10" fill="#5d6d7e">n=11</text><text x="562.0" y="348" font-size="10" fill="#5d6d7e">中位位移+0.6$</text><rect x="720.0" y="215.6" width="136.0" height="86.4" fill="#6c5ce7" opacity="0.9"/><text x="726.0" y="209.6" font-size="12" font-weight="600" fill="#2c3e50">45%</text><text x="722.0" y="316" font-size="11" fill="#5d6d7e">>5分钟</text><text x="726.0" y="334" font-size="10" fill="#5d6d7e">n=11</text><text x="722.0" y="348" font-size="10" fill="#5d6d7e">中位位移-4.2$</text></svg>
+<ul>
+<li><b>止损是硬约束：</b>13 笔亏损中 8 笔位移<b>恰好 -10.00 美元</b>（Mar~Aug），5 笔在 -4.25~-5.44（Sep 起）。止损就是固定价距，后期减半。</li>
+<li><b>止盈不是固定值：</b>95 笔盈利位移 0.5~14.2 美元连续分布（中位 1.75），无固定 TP 的尖峰 → 动态目标/跟踪型出场。</li>
+<li><b>持仓 ≤5 秒的 56 笔全部盈利</b>（中位 +2.0 美元）；持仓越长胜率越低、位移越差 → 典型「脉冲延续即收割，脉冲衰竭即离场」。</li>
+<li>少数单子会持几十分钟（最长 88 分钟）仍只赚 1~3 美元 → 无严格时间止损，等利润条件或止损了结。</li>
+</ul>
+</div>
+
+<h3>2.3 仓位与风险：离散档位 + 回撤联动</h3>
+<div class="card">
+<svg viewBox="0 0 860 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#ffffff;font-family:system-ui,sans-serif"><text x="60" y="18" font-size="14" font-weight="600" fill="#2c3e50">单笔风险占余额比例的时间线 —— 离散风险档位</text><line x1="60" y1="282" x2="910" y2="282" stroke="#bdc3c7"/><line x1="60" y1="32" x2="60" y2="282" stroke="#bdc3c7"/><text x="420.0" y="256" font-size="11" fill="#5d6d7e">2026.03 → 2026.09</text><text x="6" y="46" font-size="11" fill="#5d6d7e">风险%</text><line x1="60" y1="198" x2="890" y2="198" stroke="#e3e6ea" stroke-dasharray="3,3"/><text x="30" y="202" font-size="10" fill="#5d6d7e">2%</text><line x1="60" y1="151" x2="890" y2="151" stroke="#e3e6ea" stroke-dasharray="3,3"/><text x="30" y="155" font-size="10" fill="#5d6d7e">5%</text><line x1="60" y1="72" x2="890" y2="72" stroke="#e3e6ea" stroke-dasharray="3,3"/><text x="30" y="76" font-size="10" fill="#5d6d7e">10%</text><polyline points="65.0,151.2 72.7,151.9 80.4,152.8 88.1,152.9 95.8,151.6 103.6,152.7 111.3,151.7 119.0,147.0 126.7,152.7 134.4,154.2 142.1,154.0 149.8,153.1 157.5,152.3 165.2,153.2 172.9,146.6 180.7,150.1 188.4,151.3 196.1,152.7 203.8,151.2 211.5,146.6 219.2,151.5 226.9,152.1 234.6,151.9 242.3,151.3 250.0,151.4 257.8,151.0 265.5,151.9 273.2,146.8 280.9,151.7 288.6,152.2 296.3,152.3 304.0,152.2 311.7,147.6 319.4,147.6 327.1,152.5 334.9,152.1 342.6,73.9 350.3,74.2 358.0,75.6 365.7,74.6 373.4,76.3 381.1,77.4 388.8,77.2 396.5,78.7 404.3,79.5 412.0,83.2 419.7,79.1 427.4,80.7 435.1,76.6 442.8,80.9 450.5,79.1 458.2,154.2 465.9,154.4 473.6,154.2 481.4,154.3 489.1,154.8 496.8,155.0 504.5,154.8 512.2,155.7 519.9,154.2 527.6,155.0 535.3,154.3 543.0,154.9 550.7,154.7 558.5,154.6 566.2,154.7 573.9,154.7 581.6,154.6 589.3,155.8 597.0,183.6 604.7,183.7 612.4,182.3 620.1,182.5 627.9,182.6 635.6,182.7 643.3,181.2 651.0,181.4 658.7,181.6 666.4,182.8 674.1,183.6 681.8,183.7 689.5,183.9 697.2,184.5 705.0,184.9 712.7,185.3 720.4,185.4 728.1,185.5 735.8,185.7 743.5,185.8 751.2,186.0 758.9,186.3 766.6,186.5 774.3,186.6 782.1,186.8 789.8,186.9 797.5,187.1 805.2,208.6 812.9,222.9 820.6,208.8 828.3,208.5 836.0,201.4 843.7,200.8 851.4,219.1 859.2,200.3 866.9,199.7 874.6,215.2 882.3,200.6 890.0,200.1" fill="none" stroke="#e67e22" stroke-width="2.5"/><text x="90" y="64" font-size="11" fill="#e67e22">恢复模式 ~10%（回撤9.8%时触发）</text><text x="660" y="190" font-size="11" fill="#e67e22">2026.09起：SL减半至$5，风险降至~2%</text></svg>
+<table>
+<tr><th>时段</th><th>风险档</th><th>手数特征</th><th>账户状态</th></tr>
+<tr><td>03-10 ~ 05-26</td><td>余额的 ~5%</td><td>2.9~3.4 手</td><td>平稳爬坡</td></tr>
+<tr><td>05-29 ~ 06-19</td><td><b>~10%（恢复模式）</b></td><td>6.0~7.6 手</td><td>5月三连亏、回撤 9.8% 后触发，6月净赚 +15,098</td></tr>
+<tr><td>06-22 ~ 07-24</td><td>回落 ~5%</td><td>3.9~4.8 手（随余额缓增）</td><td>净值创新高后降档</td></tr>
+<tr><td>07-28 ~ 08-28</td><td>固定金额 ~$3,000（≈3%）</td><td>恒定 3.00 手</td><td>连续新高，锁收益</td></tr>
+<tr><td>09-01 起</td><td>~2% 且 <b>SL 由 $10 减半至 $5</b></td><td>3~4 手</td><td>9月连亏后降风险（当月 -4,139）</td></tr>
+</table>
+<p>换算关系稳定成立：<b>手数 = 风险金额 ÷ (止损价距 × 100oz合约)</b>。例如余额 5 万 EUR × 5% ≈ $2,900 ÷ $10 = 2.9 手。
+这与产品页宣称的「8 档自动风险等级 + 最大回撤保护」吻合：回撤加深→升档抢救，新高→降档锁利，极端回撤→熔断/减半。</p>
+</div>
+
+<h3>2.4 全部 13 笔亏损单</h3>
+<div class="card">
+<table>
+<tr><th>时间(服务器)</th><th>方向</th><th>手数</th><th>位移</th><th>持仓</th><th>盈亏EUR</th><th>触及固定SL</th></tr>
+<tr><td>2026-03-25 01:05</td><td>买</td><td>3.08</td><td class='neg'>-10.00</td><td>1216s</td><td class='neg'>-2,654</td><td>是</td></tr><tr><td>2026-04-09 03:07</td><td>卖</td><td>3.32</td><td class='neg'>-10.00</td><td>870s</td><td class='neg'>-2,848</td><td>是</td></tr><tr><td>2026-04-28 05:00</td><td>卖</td><td>3.29</td><td class='neg'>-10.00</td><td>718s</td><td class='neg'>-2,809</td><td>是</td></tr><tr><td>2026-05-14 07:00</td><td>卖</td><td>3.37</td><td class='neg'>-10.00</td><td>487s</td><td class='neg'>-2,877</td><td>是</td></tr><tr><td>2026-05-21 03:15</td><td>买</td><td>3.27</td><td class='neg'>-10.00</td><td>181s</td><td class='neg'>-2,813</td><td>是</td></tr><tr><td>2026-05-26 02:18</td><td>买</td><td>3.11</td><td class='neg'>-10.00</td><td>539s</td><td class='neg'>-2,672</td><td>是</td></tr><tr><td>2026-07-29 21:00</td><td>买</td><td>3.00</td><td class='neg'>-10.00</td><td>6s</td><td class='neg'>-2,629</td><td>是</td></tr><tr><td>2026-08-04 14:52</td><td>买</td><td>3.00</td><td class='neg'>-10.00</td><td>207s</td><td class='neg'>-2,605</td><td>是</td></tr><tr><td>2026-09-03 03:59</td><td>买</td><td>3.00</td><td class='neg'>-5.02</td><td>15s</td><td class='neg'>-1,300</td><td>是($5档)</td></tr><tr><td>2026-09-08 19:09</td><td>卖</td><td>4.00</td><td class='neg'>-5.14</td><td>246s</td><td class='neg'>-1,769</td><td>是($5档)</td></tr><tr><td>2026-09-09 03:06</td><td>卖</td><td>4.00</td><td class='neg'>-5.44</td><td>254s</td><td class='neg'>-1,871</td><td>是($5档)</td></tr><tr><td>2026-09-10 09:00</td><td>买</td><td>4.00</td><td class='neg'>-5.39</td><td>7s</td><td class='neg'>-1,852</td><td>是($5档)</td></tr><tr><td>2026-09-11 01:41</td><td>卖</td><td>4.00</td><td class='neg'>-4.25</td><td>624s</td><td class='neg'>-1,464</td><td>是($5档)</td></tr>
+</table>
+<p class="muted">注：亏损单入场时的动量特征与盈利单无本质差异（前5分钟推进中位 7.8 vs 9.7 美元）——亏损来自脉冲反转，
+属于该策略的固有成本，而非不同的入场逻辑。6~15 秒内即触发止损的单子均为剧烈反转瞬间（如 07-29 21:00、09-10 09:00）。</p>
+</div>
+
+<h2>三、完整交易逻辑画像（复刻蓝图）</h2>
+<div class="card">
+<table>
+<tr><th>模块</th><th>推断规则</th><th>置信度</th></tr>
+<tr><td>品种/周期</td><td>仅 XAUUSD；EA 挂任意周期图，内部用 M5（触发/ATR/ADX）+ H1（趋势过滤）+ tick（入场执行）</td><td>★★★★★</td></tr>
+<tr><td>入场方向</td><td>多空对称：价格猛冲并突破近期极值、与 H1 趋势同向</td><td>★★★★★</td></tr>
+<tr><td>触发条件</td><td>突破近 6 根 M5（30分钟）极值 + 缓冲 ≈$0.3，且近 5 分钟推进 ≥ $4~6；ADX&gt;20</td><td>★★★★☆</td></tr>
+<tr><td>执行</td><td>tick 级市价追入；同一时间单仓位（108 单中仅 2 组同刻两单）</td><td>★★★★★</td></tr>
+<tr><td>止损</td><td>固定价距 $10（1000 点）；2026-09-01 起 $5（500 点）</td><td>★★★★★</td></tr>
+<tr><td>止盈/离场</td><td>动态目标 ≈ 0.3~0.4 × M5 ATR(14)（≈$1.5-3），配合紧跟踪（≈$0.8）与「无新极值 N 秒即离场」的停滞退出</td><td>★★★☆☆</td></tr>
+<tr><td>仓位</td><td>手数 = 风险金额 ÷ (SL价距×100)；风险档 (2, 3, 5, 10)% 随回撤升降；亦出现过固定 $3,000 模式</td><td>★★★★☆</td></tr>
+<tr><td>风控</td><td>净值回撤熔断；点差过滤（需 RAW/ECN 账户）；VPS 必须（秒级机会不能断线）</td><td>★★★★☆</td></tr>
+<tr><td>无</td><td>网格 ✗ 马丁 ✗ 摊平 ✗ 隔夜掉期（持仓极短，无 swap）✗</td><td>★★★★★</td></tr>
+</table>
+</div>
+
+<h2>四、复刻建议与风险提示</h2>
+<div class="card">
+<div class="ok"><b>复刻入口已就绪：</b>工作区 <code>Experts/QuantumTitanReplica/QuantumTitanReplica.mq5</code>
+已按上述蓝图实现完整框架（突破+动量触发、H1/M5 趋势过滤、固定 SL、ATR 动态 TP、跟踪止损、停滞/超时离场、
+回撤自适应风险档、熔断），全部参数可调，可直接挂 XAUUSD M5 图回测调优。</div>
+<ul>
+<li><b>盈亏结构是反脆弱设计的反面：</b>平均亏损（-2,320 EUR）≈ 平均盈利（753 EUR）的 3.1 倍。胜率只要从 88% 掉到 ~74% 以下，策略即转亏。9 月已现 5 笔亏损回撤，作者随即减半风险——复刻时务必保留风控联动。</li>
+<li><b>利润高度集中：</b>信号页警告「80% 的增长来自 2 天」。6-7 月黄金 4500→4000→4600 的极端单边波动贡献了大部分利润，平静行情收益会大幅缩水。</li>
+<li><b>执行环境是策略的一部分：</b>秒级持仓意味着点差、滑点、延迟直接吃掉优势（信号页也警告复制跟单有高负滑点风险）。必须 RAW/ECN + VPS；换经纪商需重新验证。</li>
+<li><b>该 EA 的持续盈利依赖黄金维持高脉冲频率。</b>2026 年金价波动（4,000~4,800 美元区间巨震）是其天然粮仓，回测时务必覆盖 2024-2025 等不同波动 regime。</li>
+</ul>
+<div class="warn"><b>声明：</b>本分析基于公开信号数据与行情反推，属于行为学近似，无法还原作者私有指标的精确实现；
+报告中置信度标注即为此服务。实盘前请务必模拟盘验证并自行承担风险。</div>
+</div>
+
+<svg viewBox="0 0 860 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#ffffff;font-family:system-ui,sans-serif"><text x="60" y="18" font-size="14" font-weight="600" fill="#2c3e50">资金曲线（50,000 EUR 起始，累计余额 EUR）与回撤</text><line x1="60" y1="342" x2="910" y2="342" stroke="#bdc3c7"/><line x1="60" y1="32" x2="60" y2="342" stroke="#bdc3c7"/><text x="420.0" y="316" font-size="11" fill="#5d6d7e">2026.03 → 2026.09</text><text x="6" y="46" font-size="11" fill="#5d6d7e">EUR</text><line x1="60" y1="290" x2="890" y2="290" stroke="#e3e6ea"/><text x="22" y="294" font-size="10" fill="#5d6d7e">50k</text><line x1="60" y1="240" x2="890" y2="240" stroke="#e3e6ea"/><text x="22" y="244" font-size="10" fill="#5d6d7e">60k</text><line x1="60" y1="190" x2="890" y2="190" stroke="#e3e6ea"/><text x="22" y="194" font-size="10" fill="#5d6d7e">70k</text><line x1="60" y1="140" x2="890" y2="140" stroke="#e3e6ea"/><text x="22" y="144" font-size="10" fill="#5d6d7e">80k</text><line x1="60" y1="90" x2="890" y2="90" stroke="#e3e6ea"/><text x="22" y="94" font-size="10" fill="#5d6d7e">90k</text><line x1="60" y1="40" x2="890" y2="40" stroke="#e3e6ea"/><text x="22" y="44" font-size="10" fill="#5d6d7e">100k</text><polyline points="65.0,287.9 72.7,285.7 80.4,281.8 88.1,277.8 95.8,277.0 103.6,275.0 111.3,273.4 119.0,286.7 126.7,282.9 134.4,275.4 142.1,269.0 149.8,262.9 157.5,259.8 165.2,254.0 172.9,268.2 180.7,267.5 188.4,263.5 196.1,258.2 203.8,256.9 211.5,270.9 219.2,267.8 226.9,264.1 234.6,259.4 242.3,257.4 250.0,256.0 257.8,254.9 265.5,249.1 273.2,263.5 280.9,261.8 288.6,259.4 296.3,256.4 304.0,255.0 311.7,269.1 319.4,282.5 327.1,280.1 334.9,279.0 342.6,277.6 350.3,275.9 358.0,272.1 365.7,270.4 373.4,265.6 381.1,258.7 388.8,253.7 396.5,250.8 404.3,243.0 412.0,235.5 419.7,228.0 427.4,216.0 435.1,211.3 442.8,200.3 450.5,194.4 458.2,189.6 465.9,187.2 473.6,186.0 481.4,183.2 489.1,178.0 496.8,172.2 504.5,166.0 512.2,155.3 519.9,152.2 527.6,146.2 535.3,143.1 543.0,137.3 550.7,132.8 558.5,127.3 566.2,121.2 573.9,115.6 581.6,110.7 589.3,100.6 597.0,98.9 604.7,98.0 612.4,111.1 620.1,109.1 627.9,108.2 635.6,107.5 643.3,120.5 651.0,118.3 658.7,116.7 666.4,106.0 674.1,98.9 681.8,98.2 689.5,96.2 697.2,89.9 705.0,86.0 712.7,82.1 720.4,80.9 728.1,80.1 735.8,77.7 743.5,76.5 751.2,74.4 758.9,71.4 766.6,69.6 774.3,68.8 782.1,66.4 789.8,64.8 797.5,62.6 805.2,60.8 812.9,60.1 820.6,58.2 828.3,64.6 836.0,63.3 843.7,72.1 851.4,71.2 859.2,80.5 866.9,89.8 874.6,77.6 882.3,75.9 890.0,83.2" fill="none" stroke="#2c3e50" stroke-width="2"/><polyline points="65,340 65.0,340.0 72.7,340.0 80.4,340.0 88.1,340.0 95.8,340.0 103.6,340.0 111.3,340.0 119.0,322.9 126.7,327.8 134.4,337.4 142.1,340.0 149.8,340.0 157.5,340.0 165.2,340.0 172.9,322.9 180.7,323.8 188.4,328.6 196.1,334.9 203.8,336.5 211.5,319.7 219.2,323.4 226.9,327.8 234.6,333.5 242.3,335.9 250.0,337.5 257.8,338.9 265.5,340.0 273.2,323.0 280.9,325.0 288.6,327.8 296.3,331.3 304.0,333.0 311.7,316.3 319.4,300.6 327.1,303.3 334.9,304.6 342.6,306.3 350.3,308.3 358.0,312.8 365.7,314.9 373.4,320.5 381.1,328.6 388.8,334.6 396.5,338.0 404.3,340.0 412.0,340.0 419.7,340.0 427.4,340.0 435.1,340.0 442.8,340.0 450.5,340.0 458.2,340.0 465.9,340.0 473.6,340.0 481.4,340.0 489.1,340.0 496.8,340.0 504.5,340.0 512.2,340.0 519.9,340.0 527.6,340.0 535.3,340.0 543.0,340.0 550.7,340.0 558.5,340.0 566.2,340.0 573.9,340.0 581.6,340.0 589.3,340.0 597.0,340.0 604.7,340.0 612.4,329.8 620.1,331.4 627.9,332.1 635.6,332.6 643.3,322.5 651.0,324.2 658.7,325.5 666.4,333.8 674.1,339.3 681.8,339.9 689.5,340.0 697.2,340.0 705.0,340.0 712.7,340.0 720.4,340.0 728.1,340.0 735.8,340.0 743.5,340.0 751.2,340.0 758.9,340.0 766.6,340.0 774.3,340.0 782.1,340.0 789.8,340.0 797.5,340.0 805.2,340.0 812.9,340.0 820.6,340.0 828.3,335.4 836.0,336.3 843.7,330.0 851.4,330.7 859.2,324.0 866.9,317.4 874.6,326.1 882.3,327.3 890.0,322.1 890.0,340" fill="#fdecea" stroke="#e74c3c" stroke-width="1" opacity="0.8"/><text x="770" y="48" font-size="11" fill="#c0392b">下方红区=回撤%(0-16%)</text><line x1="342.6" y1="277.6" x2="342.6" y2="340" stroke="#6c5ce7" stroke-dasharray="3,3" opacity="0.6"/><circle cx="342.6" cy="277.6" r="4" fill="#6c5ce7"/><text x="348.6" y="269.6" font-size="10" fill="#6c5ce7">风险↑10%</text><line x1="458.2" y1="189.6" x2="458.2" y2="340" stroke="#6c5ce7" stroke-dasharray="3,3" opacity="0.6"/><circle cx="458.2" cy="189.6" r="4" fill="#6c5ce7"/><text x="464.2" y="181.6" font-size="10" fill="#6c5ce7">回落5%</text><line x1="597.0" y1="98.9" x2="597.0" y2="340" stroke="#6c5ce7" stroke-dasharray="3,3" opacity="0.6"/><circle cx="597.0" cy="98.9" r="4" fill="#6c5ce7"/><text x="603.0" y="90.9" font-size="10" fill="#6c5ce7">降3%</text><line x1="805.2" y1="60.8" x2="805.2" y2="340" stroke="#6c5ce7" stroke-dasharray="3,3" opacity="0.6"/><circle cx="805.2" cy="60.8" r="4" fill="#6c5ce7"/><text x="811.2" y="52.8" font-size="10" fill="#6c5ce7">降2%+SL减半</text></svg>
+
+<p class="muted" style="margin-top:30px">生成于 2026-09-13 · 分析管道：CSV 解析 → 时区对齐（UTC+3, 108/108 匹配）→ M5/H1 特征工程 → 触发/出场/仓位取证 → 本报告</p>
+</div></body></html>
