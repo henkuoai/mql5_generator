@@ -1,0 +1,17 @@
+# 编译产物
+/bt.exe
+/bt
+*.exe
+*.test
+
+# 历史数据（体积大，用 scripts/export_mt5.py 自行导出）
+/data/*.csv
+!/data/.gitkeep
+
+# 回测输出
+/out/*
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
