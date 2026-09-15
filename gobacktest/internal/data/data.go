@@ -203,30 +203,47 @@ func BuildH1OfBase(base, h1 []model.Bar) []int {
 // SymbolData 单个品种的全部回测数据与预计算指标
 type SymbolData struct {
 	Symbol   model.Symbol
-	Base     []model.Bar // 基准流（M1 或 M5）
+	Base     []model.Bar // 基准流（M1/M5/.../D1）
 	BaseTF   model.TF
 	M5       []model.Bar
 	H1       []model.Bar
+	Clamped  bool // true 表示基准周期比目标周期更粗，M5/H1 直接沿用基准序列
 	M5Idx    []int // Base 索引 -> M5 索引（最后一根已收盘 M5）
 	H1Idx    []int // Base 索引 -> H1 索引（最后一根已收盘 H1）
 	M5OfBase []int // Base 索引 -> 该 base bar 所属的 M5 bar 索引（用于聚合指标对齐）
 }
 
-// BuildSymbolData 由基准流构建品种数据，并预计算策略所需指标。
-// breakoutBars 决定滚动极值窗口。
+// BuildSymbolData 由基准流构建品种数据。
+// 说明：无法由粗周期推导出更细的周期。当基准周期比目标周期更粗时（例如用 H1 做基准、
+// 目标却是 M5），直接沿用基准序列作为该目标序列（Clamped=true），并在控制台提示。
 func BuildSymbolData(sym model.Symbol, base []model.Bar, baseTF model.TF, breakoutBars int) *SymbolData {
 	sd := &SymbolData{Symbol: sym, Base: base, BaseTF: baseTF}
-	if baseTF == model.M5 {
-		sd.M5 = base
-	} else {
-		sd.M5 = Aggregate(base, baseTF, model.M5)
+	var clamped bool
+	sd.M5 = buildTF(base, baseTF, model.M5, &clamped)
+	// H1 的来源是 sd.M5，其实际周期为 max(baseTF, M5)
+	srcTF := baseTF
+	if srcTF < model.M5 {
+		srcTF = model.M5
 	}
-	sd.H1 = Aggregate(sd.M5, model.M5, model.H1)
-
-	// M5/H1 索引对齐（只用已收盘的 bar）
+	sd.H1 = buildTF(sd.M5, srcTF, model.H1, &clamped)
+	sd.Clamped = clamped
 	sd.M5Idx = alignClosed(sd.M5, base, model.M5)
 	sd.H1Idx = alignClosed(sd.H1, base, model.H1)
 	return sd
+}
+
+// buildTF 生成目标周期序列：基准更细则聚合，否则沿用基准（无法由粗推细）
+func buildTF(base []model.Bar, baseTF, target model.TF, clamped *bool) []model.Bar {
+	if baseTF == target {
+		return base
+	}
+	if baseTF > target {
+		if clamped != nil {
+			*clamped = true
+		}
+		return base
+	}
+	return Aggregate(base, baseTF, target)
 }
 
 // alignClosed 对每个 base bar 返回最后一根"已收盘"的 higher bar 索引。

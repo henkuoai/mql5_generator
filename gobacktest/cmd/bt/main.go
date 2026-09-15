@@ -122,6 +122,11 @@ func main() {
 		indMap[n] = data.ComputeIndicators(sd, breakout, atrP, adxP)
 		fmt.Printf("载入 %-8s %s: %6d 根 (%s ~ %s)\n", n, tf.Label(), len(bars),
 			bars[0].Time.Format("2006-01-02"), bars[len(bars)-1].Time.Format("2006-01-02"))
+		if sd.Clamped {
+			fmt.Printf("   !! 基准周期 %s 比策略信号周期(M5)更粗，无法由 %s 推导出 M5：\n"+
+				"      信号将直接在 %s K线上计算，结果不等价于原 M5 策略。精细回测请用 -tf M1 或 M5。\n",
+				tf.Label(), tf.Label(), tf.Label())
+		}
 	}
 	if len(sdMap) == 0 {
 		fatal("没有可用数据。请先用 scripts/export_mt5.py 导出 CSV。")
@@ -236,8 +241,12 @@ func parseTF(s string) (model.TF, error) {
 		return model.M30, nil
 	case "H1":
 		return model.H1, nil
+	case "H4":
+		return model.H4, nil
+	case "D1":
+		return model.D1, nil
 	}
-	return 0, fmt.Errorf("不支持的周期: %s", s)
+	return 0, fmt.Errorf("不支持的周期: %s（可用 M1/M5/M15/M30/H1/H4/D1）", s)
 }
 
 func parseDate(s string) time.Time {
